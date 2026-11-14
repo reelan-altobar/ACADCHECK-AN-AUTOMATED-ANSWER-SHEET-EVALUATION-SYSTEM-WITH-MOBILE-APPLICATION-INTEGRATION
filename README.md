@@ -1,0 +1,313 @@
+# AcadCheck
+
+AcadCheck is an Ionic/Angular, Node.js, MySQL, OpenCV, and ONNX system for
+creating answer keys, printing answer sheets, scanning 50-question
+multiple-choice forms, grading them, and reviewing classroom statistics.
+
+## Included features
+
+- Live camera and uploaded-image scanning
+- Perspective-corrected 50-by-4 OMR detection
+- Blank, single-mark, and multiple-mark handling
+- Confidence scoring and fail-closed rejection of unreliable scans
+- Manual answer-key selection before scanning
+- Handwritten student sequence recognition from two structured digit boxes
+- Answer-key sheet generation from `backend/templates/Answer-Sheet.docx`
+- Pending/printed answer-sheet workflow
+- Result reprinting
+- Per-question classroom statistics and charts
+- Android/Capacitor and optional Raspberry Pi camera support
+
+## Answer-sheet identity area
+
+Every newly generated answer sheet has two `STUDENT SEQUENCE NO.` boxes and no
+QR code. Students write one digit per box. For sequence 1, write `01` or leave
+the first box blank and write `1` in the second. Sequence numbers range from 1
+to 99. The operator selects the answer key manually before scanning; AcadCheck
+uses only the handwritten sequence to select the student in that key's classroom.
+
+## Prerequisites
+
+- Node.js 20 or newer
+- npm
+- MySQL or MariaDB
+- Python 3.10 or newer
+- Windows for direct server-side score printing
+- Android Studio only when building the Android application
+
+## Fresh installation
+
+### 1. Install frontend dependencies
+
+```powershell
+npm ci
+```
+
+### 2. Install backend dependencies
+
+```powershell
+cd backend
+npm ci
+cd ..
+```
+
+### 3. Install scanner runtime dependencies
+
+Windows:
+
+```powershell
+python -m venv .scanner-venv
+.\.scanner-venv\Scripts\Activate.ps1
+pip install -r ml-training\requirements-runtime.txt
+```
+
+Linux:
+
+```bash
+python3 -m venv .scanner-venv
+source .scanner-venv/bin/activate
+pip install -r ml-training/requirements-runtime.txt
+```
+
+Set `OMR_PYTHON` in `backend/.env` to the Python executable
+from this environment.
+
+### 4. Configure the backend
+
+```powershell
+Copy-Item backend\.env.example backend\.env
+```
+
+Edit `backend/.env`, especially:
+
+- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`
+- `JWT_SECRET`
+- `OMR_PYTHON`
+- `OMR_OPENCV_THREADS=1`, `OMR_MAX_PENDING_REQUESTS=2`, and
+  `TESSERACT_POOL_SIZE=1` on a one-vCPU Droplet
+- `PI_CAMERA_URL` when using the Raspberry Pi camera service
+- `NODE_ENV=production` for a deployed server
+- `CORS_ORIGINS` only when a separate trusted web/app origin calls the API
+- `BOOTSTRAP_ADMIN_TOKEN` while creating the first administrator
+
+Never commit `backend/.env`.
+
+### 5. Create the database
+
+Import `acadcheck_db.sql` into MySQL. The backend automatically applies all
+files in `backend/migrations/` at startup.
+
+Example:
+
+```powershell
+mysql -u root -p < acadcheck_db.sql
+```
+
+The public schema intentionally contains no default account. The first account
+is an administrator and requires the one-time `BOOTSTRAP_ADMIN_TOKEN`. With the
+backend running, create it from an administrator-controlled terminal:
+
+```powershell
+$headers = @{ 'X-Bootstrap-Token' = '<value from backend/.env>' }
+$body = @{
+  first_name = 'System'; last_name = 'Administrator'
+  email = 'admin@example.edu'; username = 'admin'
+  password = '<a unique password of at least 12 characters>'
+} | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://localhost:3000/api/auth/register `
+  -Headers $headers -ContentType 'application/json' -Body $body
+```
+
+Remove `BOOTSTRAP_ADMIN_TOKEN` from `.env` after the first account exists.
+Later accounts are created by an authenticated administrator. Public
+registration remains disabled unless `PUBLIC_REGISTRATION=true`; even when it
+is enabled, public users can only receive the `teacher` role.
+
+### 6. Start AcadCheck
+
+Backend:
+
+```powershell
+cd backend
+npm start
+```
+
+Frontend, in another terminal:
+
+```powershell
+npm start
+```
+
+The frontend normally runs at `http://localhost:8100` and proxies API requests
+to the backend at `http://localhost:3000`.
+
+## Add this project to another GitHub account
+
+These steps publish the existing repository history to a new repository owned
+by another GitHub account. They do not copy local files that Git ignores, such
+as `.env`, `node_modules`, uploaded files, and generated build output.
+
+1. Sign in to the destination GitHub account and create a **new empty
+   repository**. Do not initialize it with a README, `.gitignore`, or license.
+2. In a terminal at the project root, check for local changes and identify the
+   current branch:
+
+   ```powershell
+   git status
+   git branch --show-current
+   ```
+
+   Commit any changes you want to include before pushing. Review `git status`
+   and `git diff --cached` to make sure no secrets or local data are staged.
+3. Authenticate Git with the destination account. With GitHub CLI, use:
+
+   ```powershell
+   gh auth login --hostname github.com --git-protocol https --web
+   gh auth switch --user <destination-username>
+   ```
+
+   Without GitHub CLI, use the GitHub sign-in prompt from Git Credential
+   Manager when you push, and sign in as the destination account.
+4. Point `origin` at the new repository and push the current branch and tags.
+   Replace the placeholders with the owner and repository name shown by
+   GitHub:
+
+   ```powershell
+   git remote set-url origin https://github.com/<destination-owner>/<repository>.git
+   git push -u origin HEAD
+   git push origin --tags
+   ```
+
+   If you want to keep the existing `origin` and push to both accounts, use
+   this instead of `git remote set-url`:
+
+   ```powershell
+   git remote add destination https://github.com/<destination-owner>/<repository>.git
+   git push -u destination HEAD
+   git push destination --tags
+   ```
+
+   Check the configured destinations with `git remote -v`. If you intend to
+   move the existing GitHub repository and preserve its issues, settings, and
+   history at the same URL, use GitHub's repository transfer process instead
+   of creating a separate repository.
+
+Before deployment, run the production preflight. It checks the secret,
+runtime files, Python/OpenCV, the OMR worker, database schema, administrator
+bootstrap state, and migrations without modifying grades:
+
+```powershell
+npm run verify:deploy
+```
+
+This single gate runs the browser unit tests, scanner contract tests,
+production frontend build, and backend preflight.
+
+The running service exposes `GET /api/health` for liveness and
+`GET /api/ready` for database/scanner readiness. Configure the service manager
+or reverse proxy to send traffic only when `/api/ready` returns HTTP 200.
+
+## Production/frontend build
+
+```powershell
+npm run build
+```
+
+The generated `www/` directory is intentionally excluded from Git. Rebuild it
+after cloning or before packaging the application.
+
+## Windows desktop installer
+
+AcadCheck includes an Electron desktop shell and NSIS installer. The installer
+bundles the frontend, Node backend, backend dependencies, and the OpenCV/NumPy
+scanner worker, so installed computers do not need Node.js or Python.
+
+```powershell
+npm ci
+npm --prefix backend ci
+npm run desktop:installer
+```
+
+The installer is generated in `dist-desktop\`. MySQL 8 or MariaDB is still
+required; import `acadcheck_db.sql` before the first online sign-in. The app can
+always open in Offline Mode if the database service is unavailable. See
+`desktop/README.md` for configuration, first-admin, storage, and verification
+details.
+
+For Android:
+
+```powershell
+npm run build
+npx cap sync android
+npx cap open android
+```
+
+## Scanner runtime resources
+
+The repository includes the files required at runtime:
+
+- `backend/models/bubble-classifier.onnx`
+- `backend/models/digit-classifier.onnx`
+- `backend/models/text-recognizer.onnx`
+- `backend/eng.traineddata`
+- `backend/scan-calibration.json`
+- `backend/bubble-calibration.json`
+- `ml-training/fast_omr_worker.py`
+- `ml-training/reference_images/`
+
+The handwritten digit model is a true 10-class model. Its reproducible training
+script is `ml-training/train_handwritten_digit_classifier.py`; training data and
+checkpoints remain ignored.
+
+## Validation
+
+Frontend type checking:
+
+```powershell
+npx tsc --noEmit
+```
+
+Backend syntax:
+
+```powershell
+node --check backend\server.js
+node --check backend\answer-sheet-generator.js
+```
+
+Python syntax:
+
+```powershell
+python -m py_compile ml-training\fast_omr_worker.py
+```
+
+## Security and repository hygiene
+
+The Git repository excludes:
+
+- `.env` files and signing keys
+- `node_modules` and Python virtual environments
+- uploaded answer sheets and score images
+- training datasets and checkpoints
+- generated frontend and Android build output
+- local IDE settings
+
+Review `git status` and `git diff --cached` before every push.
+
+For an internet or campus-network deployment:
+
+- Terminate HTTPS at a maintained reverse proxy and set `TRUST_PROXY=true`.
+- Keep `CORS_ORIGINS` empty for same-origin hosting, or list only exact trusted
+  origins separated by commas.
+- Do not expose `uploads/` through the reverse proxy. Answer sheets are served
+  only through authenticated, owner-scoped API routes.
+- Back up MySQL and test restoration before the first live examination.
+- Run `npm audit --omit=dev` in both the project and `backend` directories.
+
+## Additional documentation
+
+- `QUICK_START.md`
+- `docs/SCANNER_ENGINEERING_REPORT.md`
+- `docs/ONNX_OPERATION_GUIDE.md`
+- `raspberry-pi-camera/SETUP_GUIDE.md`
+#   A C A D C H E C K - A N - A U T O M A T E D - A N S W E R - S H E E T - E V A L U A T I O N - S Y S T E M - W I T H - M O B I L E - A P P L I C A T I O N - I N T E G R A T I O N  
+ 
