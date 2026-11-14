@@ -1,0 +1,203 @@
+.welcome-guide-modal {
+  --width: min(620px, calc(100% - 32px));
+  --height: min(760px, calc(100% - 40px));
+  --border-radius: 22px;
+}
+
+.guide-content {
+  --background: var(--app-card-bg);
+  --padding-bottom: max(22px, env(safe-area-inset-bottom));
+  text-align: left;
+}
+
+.guide-header {
+  padding: 22px 26px 20px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 95% 10%, rgba(255, 255, 255, 0.18), transparent 28%),
+    linear-gradient(135deg, #155c34, #2e8a4c);
+
+  .guide-topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+
+    > span {
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    ion-button {
+      min-height: 36px;
+      margin: 0;
+      --color: #fff;
+      --background-hover: rgba(255, 255, 255, .12);
+    }
+  }
+
+  .guide-icon {
+    display: grid;
+    width: 54px;
+    height: 54px;
+    margin-bottom: 16px;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, .25);
+    border-radius: 17px;
+    background: rgba(255, 255, 255, .14);
+
+    ion-icon { font-size: 29px; }
+  }
+
+  h2 {
+    margin: 0 0 7px;
+    font-size: clamp(23px, 4vw, 30px);
+    letter-spacing: -.025em;
+  }
+
+  p {
+    max-width: 500px;
+    margin: 0;
+    color: rgba(255, 255, 255, .86);
+    font-size: 14px;
+    line-height: 1.55;
+  }
+}
+
+.guide-progress {
+  padding: 18px 26px 0;
+
+  .progress-copy {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 7px;
+    color: var(--app-text-secondary);
+    font-size: 11px;
+    font-weight: 650;
+  }
+
+  .progress-track {
+    height: 6px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--app-border-color);
+
+    span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--ion-color-primary);
+      transition: width 220ms ease;
+    }
+  }
+}
+
+.step-content {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  min-height: 190px;
+  margin: 20px 26px;
+  padding: 22px;
+  border: 1px solid var(--app-border-color);
+  border-radius: 17px;
+  background: rgba(var(--ion-color-primary-rgb), .035);
+
+  .step-icon {
+    display: grid;
+    width: 52px;
+    height: 52px;
+    place-items: center;
+    border-radius: 15px;
+    color: var(--ion-color-primary);
+    background: rgba(var(--ion-color-primary-rgb), .11);
+
+    ion-icon { font-size: 27px; }
+  }
+
+  .feature-label {
+    color: var(--ion-color-primary);
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+  }
+
+  h3 {
+    margin: 5px 0 9px;
+    color: var(--app-text-primary);
+    font-size: 19px;
+  }
+
+  p {
+    margin: 0;
+    color: var(--app-text-secondary);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+}
+
+.learning-bites {
+  display: grid;
+  gap: 8px;
+  margin-top: 15px;
+
+  div {
+    display: grid;
+    gap: 3px;
+    padding: 10px 12px;
+    border-radius: 11px;
+    background: var(--app-card-bg);
+  }
+
+  strong { color: var(--app-text-primary); font-size: 12px; }
+  span { color: var(--app-text-secondary); font-size: 12px; line-height: 1.4; }
+}
+
+.navigation-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 26px;
+
+  .nav-btn {
+    min-height: 46px;
+    margin: 0;
+    font-weight: 650;
+    text-transform: none;
+    --border-radius: 12px;
+  }
+
+  .next-btn { margin-left: auto; }
+  .explore-btn { order: 3; flex-basis: 100%; }
+  .invisible { visibility: hidden; }
+}
+
+@media (max-width: 600px) {
+  .welcome-guide-modal {
+    --width: 100%;
+    --height: calc(100% - max(12px, env(safe-area-inset-top)));
+    --border-radius: 20px 20px 0 0;
+    align-items: flex-end;
+  }
+
+  .guide-header { padding: 18px 20px; }
+  .guide-progress { padding: 16px 20px 0; }
+
+  .step-content {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    margin: 16px 20px;
+    padding: 18px;
+  }
+
+  .navigation-buttons {
+    flex-wrap: wrap;
+    padding-inline: 20px;
+
+    .nav-btn { min-width: 0; }
+    .explore-btn { width: 100%; }
+  }
+}

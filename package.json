@@ -1,0 +1,167 @@
+{
+  "name": "AcadCheck",
+  "version": "1.2.38",
+  "author": "Ionic Framework",
+  "homepage": "https://ionicframework.com/",
+  "main": "desktop/main.js",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve --proxy-config proxy.conf.json",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "test:ci": "ng test --watch=false --browsers=ChromeHeadlessCi",
+    "lint": "ng lint",
+    "verify:deploy": "npm run test:ci && npm --prefix backend run test:scanner && npm run build -- --configuration production && npm --prefix backend run preflight",
+    "desktop:test": "node --test desktop/runtime.test.js desktop/offline-omr.test.js",
+    "desktop:test:persistence": "node desktop/persistence.integration.js",
+    "desktop:worker": "powershell -NoProfile -ExecutionPolicy Bypass -File desktop/build-scanner.ps1",
+    "desktop:dev": "npm run build -- --configuration production && electron .",
+    "desktop:pack": "npm run build -- --configuration production && npm run desktop:worker && electron-builder --win dir",
+    "desktop:installer": "npm run build -- --configuration production && npm run desktop:worker && electron-builder --win nsis",
+    "desktop:verify": "npm run desktop:test && npm run build -- --configuration production && npm run desktop:worker && electron-builder --win dir"
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/animations": "20.3.30",
+    "@angular/common": "20.3.30",
+    "@angular/compiler": "20.3.30",
+    "@angular/core": "20.3.30",
+    "@angular/forms": "20.3.30",
+    "@angular/platform-browser": "20.3.30",
+    "@angular/platform-browser-dynamic": "20.3.30",
+    "@angular/router": "20.3.30",
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/app": "8.0.1",
+    "@capacitor/core": "^8.2.0",
+    "@capacitor/haptics": "8.0.1",
+    "@capacitor/keyboard": "8.0.1",
+    "@capacitor/status-bar": "8.0.1",
+    "@ionic/angular": "^8.0.0",
+    "chart.js": "^4.5.1",
+    "chartjs-adapter-date-fns": "^3.0.0",
+    "date-fns": "4.4.0",
+    "ionicons": "^7.0.0",
+    "jsqr": "^1.4.0",
+    "onnxruntime-web": "1.27.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0",
+    "zone.js": "~0.15.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "20.3.35",
+    "@angular-eslint/builder": "^20.0.0",
+    "@angular-eslint/eslint-plugin": "^20.0.0",
+    "@angular-eslint/eslint-plugin-template": "^20.0.0",
+    "@angular-eslint/schematics": "^20.0.0",
+    "@angular-eslint/template-parser": "^20.0.0",
+    "@angular/cli": "20.3.35",
+    "@angular/compiler-cli": "20.3.30",
+    "@angular/language-service": "20.3.30",
+    "@capacitor/cli": "^8.2.0",
+    "@ionic/angular-toolkit": "^12.0.0",
+    "@types/jasmine": "~5.1.0",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "electron": "^44.3.0",
+    "electron-builder": "^26.15.3",
+    "eslint": "^9.16.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-jsdoc": "^48.2.1",
+    "eslint-plugin-prefer-arrow": "1.2.2",
+    "jasmine-core": "~5.1.0",
+    "jasmine-spec-reporter": "~5.0.0",
+    "karma": "~6.4.0",
+    "karma-chrome-launcher": "~3.2.0",
+    "karma-coverage": "~2.2.0",
+    "karma-jasmine": "~5.1.0",
+    "karma-jasmine-html-reporter": "~2.1.0",
+    "typescript": "~5.9.0"
+  },
+  "description": "Academic paper evaluation and OMR scanning system",
+  "build": {
+    "appId": "edu.snsu.acadcheck",
+    "productName": "AcadCheck",
+    "asar": true,
+    "directories": {
+      "output": "dist-desktop"
+    },
+    "files": [
+      "desktop/main.js",
+      "desktop/runtime.js",
+      "desktop/offline-omr.js",
+      "desktop/preload.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "www",
+        "to": "app/www",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "backend",
+        "to": "app/backend",
+        "filter": [
+          "**/*",
+          "!node_modules/.cache/**/*",
+          "!test-*.js",
+          "!test-fixtures/**/*",
+          "!debug-images/**/*",
+          "!bubble_dataset*/**/*",
+          "!.env"
+        ]
+      },
+      {
+        "from": "backend/node_modules",
+        "to": "app/backend-vendor",
+        "filter": [
+          "**/*",
+          "!.cache/**/*"
+        ]
+      },
+      {
+        "from": "ml-training/fast_omr_worker.py",
+        "to": "app/ml-training/fast_omr_worker.py"
+      },
+      {
+        "from": "ml-training/reference_images",
+        "to": "app/ml-training/reference_images",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "ml-training/registration_templates",
+        "to": "app/ml-training/registration_templates",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "desktop-runtime/acadcheck-omr-worker.exe",
+        "to": "app/desktop-runtime/acadcheck-omr-worker.exe"
+      },
+      {
+        "from": "desktop/icon.png",
+        "to": "app/desktop/icon.png"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "desktop/icon.png",
+      "artifactName": "AcadCheck-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "deleteAppDataOnUninstall": true
+    }
+  }
+}

@@ -1,0 +1,393 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Gradebook</ion-title>
+  <ion-buttons slot="end">
+    <ion-button (click)="openExportModal()">
+      <ion-icon slot="start" name="download-outline"></ion-icon>
+      Export workbook
+    </ion-button>
+  </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="records-content">
+  <main class="workspace-shell">
+  <section class="workspace-hero" aria-labelledby="records-page-title">
+    <div class="workspace-hero-copy">
+      <p class="workspace-eyebrow">Assessment archive</p>
+      <h1 id="records-page-title">Student gradebook</h1>
+      <p>Review recorded outcomes, correct a score, and export a classroom-ready workbook.</p>
+    </div>
+    <ion-button class="workspace-hero-action" (click)="openExportModal()">
+      <ion-icon slot="start" name="download-outline"></ion-icon>
+      Export workbook
+    </ion-button>
+  </section>
+  <!-- Filters -->
+  <div class="filters-section">
+    <ion-card class="filters-card">
+      <ion-card-content>
+        <div class="filters-heading">
+          <div>
+            <p class="workspace-eyebrow">Find a record</p>
+            <h2>Search and refine</h2>
+            <p>Use a learner, classroom, assessment, or date to focus the gradebook.</p>
+          </div>
+          <ion-badge color="medium">{{ filteredRecords.length }} shown</ion-badge>
+        </div>
+        <ion-grid>
+          <ion-row>
+            <ion-col size="12" size-md="3">
+              <ion-input
+                [(ngModel)]="searchQuery"
+                (ionChange)="onSearchChange($event)"
+                label="Learner"
+                label-placement="floating"
+                placeholder="Search learner or student number"
+                fill="outline"
+                clearInput="true">
+              </ion-input>
+            </ion-col>
+            <ion-col size="12" size-md="3">
+              <ion-select [(ngModel)]="selectedClassroomId" (ionChange)="onClassroomChange()" label="Classroom" label-placement="floating" placeholder="All classrooms" fill="outline">
+                <ion-select-option [value]="null">All Classrooms</ion-select-option>
+                <ion-select-option *ngFor="let c of classrooms" [value]="c.id">
+                  {{ c.name }} {{ c.section || '' }}
+                </ion-select-option>
+              </ion-select>
+            </ion-col>
+            <ion-col size="12" size-md="3">
+              <ion-select [(ngModel)]="selectedExamTitle" (ionChange)="onExamChange($event)" label="Assessment" label-placement="floating" placeholder="All assessments" fill="outline">
+                <ion-select-option value="">All Exams</ion-select-option>
+                <ion-select-option *ngFor="let exam of exams" [value]="exam">{{ exam }}</ion-select-option>
+              </ion-select>
+            </ion-col>
+            <ion-col size="12" size-md="3">
+              <ion-select
+                [(ngModel)]="sortMode"
+                (ionChange)="onSortChange()"
+                label="Sort by"
+                label-placement="floating"
+                fill="outline">
+                <ion-select-option value="date_desc">Date: newest first</ion-select-option>
+                <ion-select-option value="date_asc">Date: oldest first</ion-select-option>
+                <ion-select-option value="name_asc">Name: A to Z</ion-select-option>
+                <ion-select-option value="name_desc">Name: Z to A</ion-select-option>
+                <ion-select-option value="gender_male_first">Gender: male then female</ion-select-option>
+                <ion-select-option value="rank_desc">Ranking: highest score</ion-select-option>
+              </ion-select>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!-- Records Table -->
+  <div class="records-section">
+    <ion-card class="records-card">
+      <ion-card-header>
+        <ion-card-title>Recorded results</ion-card-title>
+        <ion-card-subtitle>
+          {{ filteredRecords.length }} shown · {{ getSelectableRecords().length }} grade(s) ready for selection
+        </ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="bulk-toolbar">
+          <div class="selection-summary" aria-live="polite">
+            <ion-icon name="checkmark-circle-outline"></ion-icon>
+            <span>{{ selectedCount }} grade{{ selectedCount === 1 ? '' : 's' }} selected</span>
+          </div>
+          <div class="bulk-actions">
+            <ion-button size="small" fill="outline" color="danger"
+              (click)="deleteSelectedResults()"
+              [disabled]="selectedCount === 0 || isBulkDeleting">
+              <ion-icon slot="start" name="trash-outline"></ion-icon>
+              Remove selected grades
+            </ion-button>
+            <ion-button size="small" color="danger"
+              (click)="deleteAllVisibleResults()"
+              [disabled]="getSelectableRecords().length === 0 || isBulkDeleting">
+              <ion-icon slot="start" name="trash-outline"></ion-icon>
+              {{ isBulkDeleting ? 'Removing…' : 'Remove all visible grades' }}
+            </ion-button>
+          </div>
+        </div>
+        <ion-note class="bulk-note">Removing a grade never deletes the student profile.</ion-note>
+        <div class="table-wrapper" tabindex="0" aria-label="Scrollable student records">
+          <table class="records-table">
+            <thead>
+              <tr>
+                <th class="select-column">
+                  <ion-checkbox
+                    aria-label="Select all visible results"
+                    [checked]="areAllVisibleSelected()"
+                    [indeterminate]="areSomeVisibleSelected()"
+                    [disabled]="getSelectableRecords().length === 0 || isBulkDeleting"
+                    (ionChange)="toggleSelectAll($event)">
+                  </ion-checkbox>
+                </th>
+                <th>Classroom</th>
+                <th>Learner</th>
+                <th>Gender</th>
+                <th>Sequence</th>
+                <th>Assessment</th>
+                <th>Recorded</th>
+                <th>Score</th>
+                <th>Rate</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of filteredRecords">
+                <td class="select-column">
+                  <ion-checkbox
+                    [attr.aria-label]="'Select result for ' + getStudentName(r)"
+                    [checked]="isRecordSelected(r)"
+                    [disabled]="!r.response_id || isBulkDeleting"
+                    (ionChange)="toggleRecordSelection(r, $event)">
+                  </ion-checkbox>
+                </td>
+                <td>
+                  <div class="cell-primary">{{ getClassroomName(r) }}</div>
+                </td>
+                <td>
+                  <button type="button" class="student-link" (click)="openStudentModal(r)">
+                    {{ getStudentName(r) }}
+                  </button>
+                  <div class="cell-secondary">{{ r.student_number }}</div>
+                </td>
+                <td>
+                  <ion-badge [color]="r.gender === 'male' ? 'primary' : r.gender === 'female' ? 'tertiary' : 'medium'">
+                    {{ getGenderLabel(r) }}
+                  </ion-badge>
+                </td>
+                <td>
+                  <ion-badge color="primary">#{{ r.sequential_number }}</ion-badge>
+                </td>
+                <td>{{ r.exam_title || '—' }}</td>
+                <td>{{ r.graded_at ? (r.graded_at | date:'mediumDate') : '—' }}</td>
+                <td>
+                  <span *ngIf="r.response_id; else noScore">{{ r.total_score ?? '—' }}</span>
+                  <ng-template #noScore>—</ng-template>
+                </td>
+                <td>
+                  <span *ngIf="r.percentage !== null && r.percentage !== undefined; else noPct">{{ r.percentage }}%</span>
+                  <ng-template #noPct>—</ng-template>
+                </td>
+                <td>
+                  <ion-badge [color]="r.is_graded ? 'success' : 'warning'">
+                    {{ getStatus(r) }}
+                  </ion-badge>
+                </td>
+                <td>
+                  <div class="actions">
+                    <ion-button size="small" fill="clear" (click)="openEditModal(r)" [disabled]="!r.response_id">
+                      <ion-icon slot="start" name="create-outline"></ion-icon>
+                      Edit score
+                    </ion-button>
+                    <ion-button size="small" fill="clear" color="danger" (click)="deleteScore(r)" [disabled]="!r.response_id || isDeletingScore(r)">
+                      <ion-icon slot="start" name="trash-outline"></ion-icon>
+                      {{ isDeletingScore(r) ? 'Removing…' : 'Remove' }}
+                    </ion-button>
+                    <ion-button size="small" fill="clear" color="warning" (click)="deleteStudent(r)">
+                      <ion-icon slot="start" name="person-remove-outline"></ion-icon>
+                    </ion-button>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="filteredRecords.length === 0">
+                <td colspan="11" class="empty-row">
+                  <ion-note>No records found</ion-note>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  </main>
+
+  <!-- Student details and automated analysis -->
+  <ion-modal class="student-analysis-modal" [isOpen]="showStudentModal" (didDismiss)="closeStudentModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar color="primary">
+          <ion-title>Student Insights</ion-title>
+          <ion-buttons slot="end">
+            <ion-button aria-label="Close student insights" (click)="closeStudentModal()">
+              <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="student-analysis-content" *ngIf="selectedStudent">
+        <section class="student-profile">
+          <div class="student-avatar">{{ selectedStudent.first_name.charAt(0) }}{{ selectedStudent.last_name.charAt(0) }}</div>
+          <div>
+            <h2>{{ getStudentName(selectedStudent) }}</h2>
+            <p>{{ selectedStudent.student_number }} · {{ getClassroomName(selectedStudent) }}</p>
+            <ion-badge color="medium">{{ getGenderLabel(selectedStudent) }}</ion-badge>
+            <ion-badge color="primary">Sequence #{{ selectedStudent.sequential_number }}</ion-badge>
+          </div>
+        </section>
+
+        <div class="analysis-loading" *ngIf="isStudentAnalysisLoading">
+          Analyzing the student's graded assessments…
+        </div>
+
+        <ng-container *ngIf="studentAnalysis as analysis">
+          <section class="analysis-section">
+            <div class="section-heading">
+              <ion-icon name="analytics-outline"></ion-icon>
+              <div>
+                <p>Automated analysis</p>
+                <h3>Performance overview</h3>
+              </div>
+              <ion-badge [color]="analysis.trend === 'improving' ? 'success' : analysis.trend === 'declining' ? 'danger' : 'medium'">
+                {{ analysis.trend === 'insufficient' ? 'New student' : (analysis.trend | titlecase) }}
+              </ion-badge>
+            </div>
+            <div class="metric-grid">
+              <div><strong>{{ analysis.attempts }}</strong><span>Assessments</span></div>
+              <div><strong>{{ analysis.averageAccuracy }}%</strong><span>Overall accuracy</span></div>
+              <div><strong>{{ analysis.recentAverage }}%</strong><span>Recent average</span></div>
+              <div><strong [class.negative]="analysis.change < 0">{{ analysis.change > 0 ? '+' : '' }}{{ analysis.change }}%</strong><span>Change from first</span></div>
+            </div>
+            <p class="answer-summary">{{ analysis.correctAnswers }} of {{ analysis.totalAnswers }} analyzed answers were correct.</p>
+            <div class="student-signal-grid">
+              <div>
+                <span>Learning direction</span>
+                <strong>{{ analysis.trend === 'insufficient' ? 'Waiting for more results' : (analysis.trend | titlecase) }}</strong>
+                <small>Compares the first and latest graded assessment.</small>
+              </div>
+              <div>
+                <span>Performance consistency</span>
+                <strong>{{ analysis.consistency | titlecase }}</strong>
+                <small>Shows how much assessment accuracy changes over time.</small>
+              </div>
+            </div>
+          </section>
+
+          <section class="analysis-section feedback-panel">
+            <div class="section-heading">
+              <ion-icon name="bulb-outline"></ion-icon>
+              <div><p>Personalized guidance</p><h3>Feedback</h3></div>
+            </div>
+            <p>{{ analysis.feedback }}</p>
+          </section>
+
+          <section class="question-groups" *ngIf="analysis.strengths.length || analysis.reviewAreas.length">
+            <div class="question-group strength" *ngIf="analysis.strengths.length">
+              <h3>Strengths</h3>
+              <div class="question-tags">
+                <span *ngFor="let item of analysis.strengths">{{ item }}</span>
+              </div>
+            </div>
+            <div class="question-group review" *ngIf="analysis.reviewAreas.length">
+              <h3>Needs review</h3>
+              <div class="question-tags">
+                <span *ngFor="let item of analysis.reviewAreas">{{ item }}</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="analysis-section" *ngIf="analysis.assessmentHistory.length">
+            <div class="section-heading">
+              <ion-icon name="time-outline"></ion-icon>
+              <div><p>Most recent assessments</p><h3>Performance history</h3></div>
+            </div>
+            <div class="assessment-history">
+              <article *ngFor="let assessment of analysis.assessmentHistory">
+                <div>
+                  <strong>{{ assessment.title }}</strong>
+                  <span>{{ assessment.subject || 'No subject' }} · {{ assessment.date | date:'mediumDate' }}</span>
+                </div>
+                <div class="history-score" [class.needs-support]="assessment.accuracy < 60">{{ assessment.accuracy }}%</div>
+              </article>
+            </div>
+          </section>
+
+          <section class="analysis-section">
+            <h3>Recommendations</h3>
+            <ul class="recommendation-list">
+              <li *ngFor="let recommendation of analysis.recommendations">{{ recommendation }}</li>
+            </ul>
+          </section>
+        </ng-container>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <!-- Edit Score Modal -->
+  <ion-modal [isOpen]="showEditModal" (didDismiss)="closeEditModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar color="primary">
+          <ion-title>Update Score</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeEditModal()">Close</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="modal-content">
+        <div class="form-section" *ngIf="editingRecord">
+          <p><strong>Student:</strong> {{ getStudentName(editingRecord) }}</p>
+          <p><strong>Exam:</strong> {{ editingRecord.exam_title }}</p>
+
+          <ion-item>
+            <ion-label position="floating">Score</ion-label>
+            <ion-input type="number" [(ngModel)]="editScore" (ionInput)="updateEditPercentage()" min="0" max="50"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="floating">Percentage</ion-label>
+            <ion-input type="number" [(ngModel)]="editPercentage" min="0" max="40" readonly="true"></ion-input>
+          </ion-item>
+
+          <ion-button expand="block" (click)="saveScore()">
+            <ion-icon slot="start" name="save-outline"></ion-icon>
+            Save
+          </ion-button>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <!-- Toast -->
+  <ion-toast [isOpen]="showToast" [message]="toastMessage" [duration]="3000" position="bottom" (didDismiss)="showToast = false"></ion-toast>
+
+  <!-- Export Classroom Selection Modal -->
+  <ion-modal [isOpen]="showExportModal" (didDismiss)="closeExportModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar color="primary">
+          <ion-title>Export Records to Excel</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeExportModal()">Cancel</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="modal-content">
+        <div class="form-section">
+          <p>Select the classroom to include in the Excel report. Passed and failed students will be separated into different sheets.</p>
+          <ion-select [(ngModel)]="exportClassroomId" placeholder="All Classrooms" fill="outline">
+            <ion-select-option [value]="null">All Classrooms</ion-select-option>
+            <ion-select-option *ngFor="let c of classrooms" [value]="c.id">
+              {{ c.name }} {{ c.section || '' }}
+            </ion-select-option>
+          </ion-select>
+          <ion-button expand="block" (click)="confirmExport()" class="export-confirm-btn">
+            <ion-icon slot="start" name="download-outline"></ion-icon>
+            Download Excel
+          </ion-button>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+</ion-content>

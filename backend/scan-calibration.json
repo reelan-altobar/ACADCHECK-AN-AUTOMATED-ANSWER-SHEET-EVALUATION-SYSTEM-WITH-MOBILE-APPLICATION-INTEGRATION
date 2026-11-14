@@ -1,0 +1,11 @@
+{
+  "calibrations": {},
+  "defaults": {
+    "acadcheck-50": {
+      "topMarginRatio": 0.16,
+      "bottomMarginRatio": 0.82,
+      "leftMarginRatio": 0.05,
+      "rightMarginRatio": 0.95
+    }
+  }
+}
