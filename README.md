@@ -1,8 +1,6 @@
 # AcadCheck
 
-AcadCheck is an Ionic/Angular, Node.js, MySQL, OpenCV, and ONNX system for
-creating answer keys, printing answer sheets, scanning 50-question
-multiple-choice forms, grading them, and reviewing classroom statistics.
+AcadCheck is an Ionic/Angular, Node.js, MySQL, OpenCV, and ONNX system for creating answer keys, printing answer sheets, scanning 50-question multiple-choice forms, grading them, and reviewing classroom statistics.
 
 ## Included features
 
@@ -20,11 +18,7 @@ multiple-choice forms, grading them, and reviewing classroom statistics.
 
 ## Answer-sheet identity area
 
-Every newly generated answer sheet has two `STUDENT SEQUENCE NO.` boxes and no
-QR code. Students write one digit per box. For sequence 1, write `01` or leave
-the first box blank and write `1` in the second. Sequence numbers range from 1
-to 99. The operator selects the answer key manually before scanning; AcadCheck
-uses only the handwritten sequence to select the student in that key's classroom.
+Every newly generated answer sheet has two `STUDENT SEQUENCE NO.` boxes and no QR code. Students write one digit per box. For sequence 1, write `01` or leave the first box blank and write `1` in the second. Sequence numbers range from 1 to 99. The operator selects the answer key manually before scanning; AcadCheck uses only the handwritten sequence to select the student in that key's classroom.
 
 ## Prerequisites
 
@@ -309,5 +303,6 @@ For an internet or campus-network deployment:
 - `docs/SCANNER_ENGINEERING_REPORT.md`
 - `docs/ONNX_OPERATION_GUIDE.md`
 - `raspberry-pi-camera/SETUP_GUIDE.md`
-#   A C A D C H E C K - A N - A U T O M A T E D - A N S W E R - S H E E T - E V A L U A T I O N - S Y S T E M - W I T H - M O B I L E - A P P L I C A T I O N - I N T E G R A T I O N  
+#   A C A D C H E C K - A N - A U T O M A T E D - A N S W E R - S H E E T - E V A L U A T I O N - S Y S T E M - W I T H - M O B I L E - A P P L I C A T I O N - I N T E G R A T I O N 
+ 
  
