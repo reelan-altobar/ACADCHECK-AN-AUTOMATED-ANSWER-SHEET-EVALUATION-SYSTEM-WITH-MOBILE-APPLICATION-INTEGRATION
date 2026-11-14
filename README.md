@@ -303,6 +303,3 @@ For an internet or campus-network deployment:
 - `docs/SCANNER_ENGINEERING_REPORT.md`
 - `docs/ONNX_OPERATION_GUIDE.md`
 - `raspberry-pi-camera/SETUP_GUIDE.md`
-#   A C A D C H E C K - A N - A U T O M A T E D - A N S W E R - S H E E T - E V A L U A T I O N - S Y S T E M - W I T H - M O B I L E - A P P L I C A T I O N - I N T E G R A T I O N 
- 
- 
